@@ -1,11 +1,13 @@
 package sample;
 
 import javafx.application.Platform;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -42,7 +44,6 @@ public class Controller {
         ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
 
         game = (Game) in.readObject();
-
 
     }
 
@@ -113,6 +114,8 @@ public class Controller {
                                 ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
                                 game = (Game) in.readObject();
                                 s.close();
+
+                                refreshBoard();
                             } catch (IOException | ClassNotFoundException e) {
                                 e.printStackTrace();
                             }
@@ -156,7 +159,9 @@ public class Controller {
                                 on.writeObject(game);
                                 on.flush();
                                 s.close();
-                            }catch (IOException e){}
+
+                                refreshBoard();
+                            }catch (IOException e){e.printStackTrace();}
 
 
                         }
@@ -319,6 +324,29 @@ public class Controller {
 
         dialogStage.setScene(new Scene(vbox));
         dialogStage.show();
+    }
+
+    void refreshBoard()
+    {
+        ObservableList<Node> childrens = ourPane.getChildren();
+        for (int i=0;i<game.size;i++)
+        {
+            for (int j=0;j<game.size;j++)
+            {
+
+                if(game.ourPlansza[i][j] == Stan.STAN_ZNISZCZONY) {
+
+                    for (Node node : childrens) {
+                        if(ourPane.getRowIndex(node) == i && ourPane.getColumnIndex(node) == j)
+                        {
+                            node.setStyle("-fx-background-color: red");
+                        }
+                    }
+                }
+
+
+            }
+        }
     }
 
 
