@@ -17,7 +17,6 @@ public class Game implements Serializable {
         enemyPlansza = new Stan[sizePlansza][sizePlansza];
         ourPlansza = new Stan[sizePlansza][sizePlansza];
 
-
         enemyHaubica = new Haubica(enemyPosX,enemyPosY);
         ourHaubica = new Haubica(ourPosX,ourPosY);
 
