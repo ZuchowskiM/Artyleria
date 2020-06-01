@@ -2,7 +2,6 @@ package sample;
 
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
-import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -12,7 +11,10 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -25,6 +27,9 @@ public class Controller {
 
     @FXML
     VBox planszaMain;
+
+    //@FXML
+    TextField txtFldTurn;
 
     GridPane enemyPane;
     GridPane ourPane;
@@ -172,7 +177,7 @@ public class Controller {
 
     private void initializePlansze()
     {
-        planszaMain.setSpacing(50);
+        planszaMain.setSpacing(30);
 
         enemyPane = new GridPane();
         enemyPane.setAlignment(Pos.CENTER);
@@ -333,6 +338,7 @@ public class Controller {
                                 {
                                     if(game.enemyHaubica.getPosY() == 0 && game.enemyHaubica.getPosX() == 0)
                                     {
+                                        game.enemyPlansza[0][0] = Stan.STAN_WOLNY;
                                         game.enemyHaubica.setPosX(finalI - 1);
                                         game.enemyHaubica.setPosY(finalJ - 1 );
                                         game.ourPlansza[finalI-1][finalJ - 1 ] = Stan.STAN_ZAJETY;
@@ -360,6 +366,7 @@ public class Controller {
                                 else {
                                     if(game.ourHaubica.getPosY() == 0 && game.ourHaubica.getPosX() == 0)
                                     {
+                                        game.ourPlansza[0][0] = Stan.STAN_WOLNY;
                                         game.ourHaubica.setPosX(finalI -1);
                                         game.ourHaubica.setPosY(finalJ - 1);
                                         game.enemyPlansza[finalI-1][finalJ - 1] = Stan.STAN_ZAJETY;
@@ -393,51 +400,58 @@ public class Controller {
         ourPane.setGridLinesVisible(true);
 
         planszaMain.getChildren().add(ourPane);
+
+        txtFldTurn = new TextField("");
+        txtFldTurn.setAlignment(Pos.CENTER);
+        txtFldTurn.setPrefHeight(20);
+        txtFldTurn.setFont(Font.font("Verdana", FontWeight.BOLD, 16));
+
+        planszaMain.getChildren().add(txtFldTurn);
     }
 
-    public void endGameWin()
-    {
-        Stage dialogStage = new Stage();
-        dialogStage.initModality(Modality.WINDOW_MODAL);
-        dialogStage.setResizable(true);
-
-        Button endButton = new Button("Wyjdź");
-        endButton.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                Platform.exit();
-            }
-        });
-
-        VBox vbox = new VBox(new Text("Brawo!!"), endButton);
-        vbox.setAlignment(Pos.CENTER);
-        vbox.setPadding(new Insets(15,15,15,15));
-
-        dialogStage.setScene(new Scene(vbox));
-        dialogStage.show();
-    }
-
-    public void endGameLose()
-    {
-        Stage dialogStage = new Stage();
-        dialogStage.initModality(Modality.WINDOW_MODAL);
-        dialogStage.setResizable(true);
-
-        Button endButton = new Button("Wyjdź");
-        endButton.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                Platform.exit();
-            }
-        });
-
-        VBox vbox = new VBox(new Text("Przegrałeś :("), endButton);
-        vbox.setAlignment(Pos.CENTER);
-        vbox.setPadding(new Insets(15,15,15,15));
-
-        dialogStage.setScene(new Scene(vbox));
-        dialogStage.show();
-    }
+//    public void endGameWin()
+//    {
+//        Stage dialogStage = new Stage();
+//        dialogStage.initModality(Modality.WINDOW_MODAL);
+//        dialogStage.setResizable(true);
+//
+//        Button endButton = new Button("Wyjdź");
+//        endButton.setOnAction(new EventHandler<ActionEvent>() {
+//            @Override
+//            public void handle(ActionEvent actionEvent) {
+//                Platform.exit();
+//            }
+//        });
+//
+//        VBox vbox = new VBox(new Text("Brawo!!"), endButton);
+//        vbox.setAlignment(Pos.CENTER);
+//        vbox.setPadding(new Insets(15,15,15,15));
+//
+//        dialogStage.setScene(new Scene(vbox));
+//        dialogStage.show();
+//    }
+//
+//    public void endGameLose()
+//    {
+//        Stage dialogStage = new Stage();
+//        dialogStage.initModality(Modality.WINDOW_MODAL);
+//        dialogStage.setResizable(true);
+//
+//        Button endButton = new Button("Wyjdź");
+//        endButton.setOnAction(new EventHandler<ActionEvent>() {
+//            @Override
+//            public void handle(ActionEvent actionEvent) {
+//                Platform.exit();
+//            }
+//        });
+//
+//        VBox vbox = new VBox(new Text("Przegrałeś :("), endButton);
+//        vbox.setAlignment(Pos.CENTER);
+//        vbox.setPadding(new Insets(15,15,15,15));
+//
+//        dialogStage.setScene(new Scene(vbox));
+//        dialogStage.show();
+//    }
 
     boolean refreshBoard()
     {
@@ -445,6 +459,17 @@ public class Controller {
         if(playerFirst)
         {
             System.out.println("refreshBoard() player1");
+
+            if(game.turn)
+            {
+                txtFldTurn.setText("Twój ruch");
+                txtFldTurn.setStyle("-fx-text-fill: green");
+            }
+            else
+            {
+                txtFldTurn.setText("Tura przeciwnika");
+                txtFldTurn.setStyle("-fx-text-fill: red");
+            }
 
             ObservableList<Node> childrens = ourPane.getChildren();
             for (int i=0;i<game.size;i++)
@@ -529,6 +554,18 @@ public class Controller {
 
         }
         else {
+
+            if(!game.turn)
+            {
+                txtFldTurn.setStyle("-fx-text-fill: green");
+                txtFldTurn.setText("Twój ruch");
+            }
+            else
+            {
+                txtFldTurn.setStyle("-fx-text-fill: red");
+                txtFldTurn.setText("Tura przeciwnika");
+            }
+
             System.out.println("refreshBoard() player2");
 
             ObservableList<Node> childrens = ourPane.getChildren();
