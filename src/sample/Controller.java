@@ -21,6 +21,7 @@ import javafx.stage.Stage;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.concurrent.locks.Lock;
 
 
 public class Controller {
@@ -36,7 +37,7 @@ public class Controller {
 
     Game game;
     boolean playerFirst;
-
+    Thread yourTurnT;
 
 
     public Controller() throws IOException, ClassNotFoundException {
@@ -149,29 +150,31 @@ public class Controller {
             boolean flag = true;
             while(flag)
             {
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    Socket s = new Socket("127.0.0.1", 1700);
+                    try {
+                        Thread.sleep(250);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        Socket s = new Socket("127.0.0.1", 1700);
 
-                    PrintWriter printWriter = new PrintWriter(s.getOutputStream());
-                    printWriter.println("get");
-                    printWriter.flush();
+                        PrintWriter printWriter = new PrintWriter(s.getOutputStream());
+                        printWriter.println("get");
+                        printWriter.flush();
 
-                    ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
-                    game = (Game) in.readObject();
-                    s.close();
+                        ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
+                        game = (Game) in.readObject();
+                        s.close();
 
 
-                    flag = refreshBoard();
-                } catch (IOException | ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
+                        flag = refreshBoard();
+                    } catch (IOException | ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
+
             }
-        };new Thread(yourTurn).start();
+        };yourTurnT = new Thread(yourTurn);
+        yourTurnT.start();
 
     }
 
@@ -224,64 +227,62 @@ public class Controller {
 
                             if(CheckYourTurn())
                             {
-                                if(playerFirst)
-                                {
-                                    if(game.enemyPlansza[finalI-1][finalJ-1] == Stan.STAN_WOLNY)
-                                    {
-                                        game.enemyPlansza[finalI-1][finalJ-1] = Stan.STAN_ZNISZCZONY;
-                                        button.setStyle("-fx-background-color: red");
+                                if (playerFirst) {
+                                        if (game.enemyPlansza[finalI - 1][finalJ - 1] == Stan.STAN_WOLNY) {
+                                            game.enemyPlansza[finalI - 1][finalJ - 1] = Stan.STAN_ZNISZCZONY;
+                                            button.setStyle("-fx-background-color: red");
+                                        } else if (game.enemyPlansza[finalI - 1][finalJ - 1] == Stan.STAN_ZAJETY) {
+                                            game.enemyPlansza[finalI - 1][finalJ - 1] = Stan.STAN_ZNISZCZONY;
+                                            game.enemyHaubica.hit();
+                                            button.setStyle("-fx-background-color: black");
+                                            //if(game.enemyHaubica.health < 1)
+                                            //{
+                                            //    endGameWin();
+                                            //}
+                                        }
+                                        game.changeTurn();
+
+                                    } else {
+
+                                        if (game.ourPlansza[finalI - 1][finalJ - 1] == Stan.STAN_WOLNY) {
+                                            game.ourPlansza[finalI - 1][finalJ - 1] = Stan.STAN_ZNISZCZONY;
+                                            button.setStyle("-fx-background-color: red");
+                                        } else if (game.ourPlansza[finalI - 1][finalJ - 1] == Stan.STAN_ZAJETY) {
+                                            game.ourPlansza[finalI - 1][finalJ - 1] = Stan.STAN_ZNISZCZONY;
+                                            game.ourHaubica.hit();
+                                            button.setStyle("-fx-background-color: black");
+                                            // if(game.ourHaubica.health < 1)
+                                            //{
+                                            //     endGameWin();
+                                            // }
+                                        }
+                                        game.changeTurn();
                                     }
-                                    else if(game.enemyPlansza[finalI-1][finalJ-1] == Stan.STAN_ZAJETY)
-                                    {
-                                        game.enemyPlansza[finalI-1][finalJ-1] = Stan.STAN_ZNISZCZONY;
-                                        game.enemyHaubica.hit();
-                                        button.setStyle("-fx-background-color: black");
-                                        //if(game.enemyHaubica.health < 1)
-                                        //{
-                                        //    endGameWin();
-                                        //}
+
+                                    try {
+                                        Socket s = new Socket("127.0.0.1", 1700);
+
+                                        PrintWriter printWriter = new PrintWriter(s.getOutputStream());
+                                        printWriter.println("set");
+                                        printWriter.flush();
+
+                                        ObjectOutputStream on = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
+                                        on.writeObject(game);
+                                        on.flush();
+                                        s.close();
+
+
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
                                     }
-                                    game.changeTurn();
+                                    refreshBoard();
 
                                 }
-                                else {
-
-                                    if(game.ourPlansza[finalI-1][finalJ-1] == Stan.STAN_WOLNY)
-                                    {
-                                        game.ourPlansza[finalI-1][finalJ-1] = Stan.STAN_ZNISZCZONY;
-                                        button.setStyle("-fx-background-color: red");
-                                    }
-                                    else if(game.ourPlansza[finalI-1][finalJ-1] == Stan.STAN_ZAJETY)
-                                    {
-                                        game.ourPlansza[finalI-1][finalJ-1] = Stan.STAN_ZNISZCZONY;
-                                        game.ourHaubica.hit();
-                                        button.setStyle("-fx-background-color: black");
-                                       // if(game.ourHaubica.health < 1)
-                                        //{
-                                       //     endGameWin();
-                                       // }
-                                    }
-                                    game.changeTurn();
-                                }
-
-                                try {
-                                Socket s = new Socket("127.0.0.1", 1700);
-
-                                PrintWriter printWriter = new PrintWriter(s.getOutputStream());
-                                printWriter.println("set");
-                                printWriter.flush();
-
-                                ObjectOutputStream on = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
-                                on.writeObject(game);
-                                on.flush();
-                                s.close();
 
 
-                                }catch (IOException e){e.printStackTrace();}
-                                refreshBoard();
                             }
 
-                        }
+
                     });
                     enemyPane.add(button, i, j);
                 }
@@ -463,12 +464,12 @@ public class Controller {
             if(game.turn)
             {
                 txtFldTurn.setText("Twój ruch");
-                txtFldTurn.setStyle("-fx-text-fill: green");
+                txtFldTurn.setStyle("-fx-text-fill: chartreuse");
             }
             else
             {
                 txtFldTurn.setText("Tura przeciwnika");
-                txtFldTurn.setStyle("-fx-text-fill: red");
+                txtFldTurn.setStyle("-fx-text-fill: crimson");
             }
 
             ObservableList<Node> childrens = ourPane.getChildren();
@@ -557,12 +558,12 @@ public class Controller {
 
             if(!game.turn)
             {
-                txtFldTurn.setStyle("-fx-text-fill: green");
+                txtFldTurn.setStyle("-fx-text-fill: chartreuse");
                 txtFldTurn.setText("Twój ruch");
             }
             else
             {
-                txtFldTurn.setStyle("-fx-text-fill: red");
+                txtFldTurn.setStyle("-fx-text-fill: crimson");
                 txtFldTurn.setText("Tura przeciwnika");
             }
 
