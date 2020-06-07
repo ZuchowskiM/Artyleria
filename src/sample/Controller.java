@@ -2,6 +2,7 @@ package sample;
 
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -21,7 +22,6 @@ import javafx.stage.Stage;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.concurrent.locks.Lock;
 
 
 public class Controller {
@@ -35,7 +35,7 @@ public class Controller {
     GridPane enemyPane;
     GridPane ourPane;
 
-    Game game;
+    volatile Game game;
     boolean playerFirst;
     Thread yourTurnT;
 
@@ -73,7 +73,7 @@ public class Controller {
         ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
 
         game = (Game) in.readObject();
-
+        s.close();
 
 
     }
@@ -84,22 +84,22 @@ public class Controller {
         {
             if (game.turn)
             {
-                System.out.println("tura gracza 1");
+                //System.out.println("tura gracza 1");
                 return true;
             }
             else {
-                System.out.println("tura gracza 2");
+                //System.out.println("tura gracza 2");
                 return false;
             }
         }
         else {
             if(!game.turn) {
-                System.out.println("tura gracza 2");
+                //System.out.println("tura gracza 2");
                 return true;
             }
             else
             {
-                System.out.println("tura gracza 1");
+                //System.out.println("tura gracza 1");
                 return false;
             }
 
@@ -111,71 +111,48 @@ public class Controller {
     public void initialize()
     {
         initializePlansze();
-
-//        Task yourTurn = new Task<Void>()
-//        {
-//            @Override public Void call()
-//            {
-//                while(true)
-//                {
-//                    try {
-//                        Thread.sleep(500);
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-//                    try {
-//                        Socket s = new Socket("127.0.0.1", 1700);
-//
-//                        PrintWriter printWriter = new PrintWriter(s.getOutputStream());
-//                        printWriter.println("get");
-//                        printWriter.flush();
-//
-//                        ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
-//                        game = (Game) in.readObject();
-//                        s.close();
-//
-//
-//                        refreshBoard();
-//                    } catch (IOException | ClassNotFoundException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-//            }
-//
-//
-//        };new Thread(yourTurn).start();
+        refreshBoard();
 
         Runnable yourTurn = ()->
         {
             boolean flag = true;
             while(flag)
             {
+
                     try {
                         Thread.sleep(250);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     try {
-                        Socket s = new Socket("127.0.0.1", 1700);
 
-                        PrintWriter printWriter = new PrintWriter(s.getOutputStream());
-                        printWriter.println("get");
-                        printWriter.flush();
+                            if(!CheckYourTurn())
+                            {
+                                Socket s = new Socket("127.0.0.1", 1700);
 
-                        ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
-                        game = (Game) in.readObject();
-                        s.close();
+                                PrintWriter printWriter = new PrintWriter(s.getOutputStream());
+                                printWriter.println("get");
+                                printWriter.flush();
+
+                                ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
+                                game = (Game) in.readObject();
+                                s.close();
+
+                                flag = refreshBoard();
+                            }
 
 
-                        flag = refreshBoard();
+
+
+
                     } catch (IOException | ClassNotFoundException e) {
                         e.printStackTrace();
                     }
 
+
             }
         };yourTurnT = new Thread(yourTurn);
         yourTurnT.start();
-
     }
 
     private void initializePlansze()
@@ -227,7 +204,8 @@ public class Controller {
 
                             if(CheckYourTurn())
                             {
-                                if (playerFirst) {
+
+                                    if (playerFirst) {
                                         if (game.enemyPlansza[finalI - 1][finalJ - 1] == Stan.STAN_WOLNY) {
                                             game.enemyPlansza[finalI - 1][finalJ - 1] = Stan.STAN_ZNISZCZONY;
                                             button.setStyle("-fx-background-color: red");
@@ -235,12 +213,8 @@ public class Controller {
                                             game.enemyPlansza[finalI - 1][finalJ - 1] = Stan.STAN_ZNISZCZONY;
                                             game.enemyHaubica.hit();
                                             button.setStyle("-fx-background-color: black");
-                                            //if(game.enemyHaubica.health < 1)
-                                            //{
-                                            //    endGameWin();
-                                            //}
                                         }
-                                        game.changeTurn();
+
 
                                     } else {
 
@@ -251,37 +225,35 @@ public class Controller {
                                             game.ourPlansza[finalI - 1][finalJ - 1] = Stan.STAN_ZNISZCZONY;
                                             game.ourHaubica.hit();
                                             button.setStyle("-fx-background-color: black");
-                                            // if(game.ourHaubica.health < 1)
-                                            //{
-                                            //     endGameWin();
-                                            // }
                                         }
-                                        game.changeTurn();
+
                                     }
-
-                                    try {
-                                        Socket s = new Socket("127.0.0.1", 1700);
-
-                                        PrintWriter printWriter = new PrintWriter(s.getOutputStream());
-                                        printWriter.println("set");
-                                        printWriter.flush();
-
-                                        ObjectOutputStream on = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
-                                        on.writeObject(game);
-                                        on.flush();
-                                        s.close();
+                                    game.changeTurn();
 
 
-                                    } catch (IOException e) {
-                                        e.printStackTrace();
-                                    }
-                                    refreshBoard();
+                                        try {
+                                            Socket s = new Socket("127.0.0.1", 1700);
 
-                                }
+                                            PrintWriter printWriter = new PrintWriter(new BufferedOutputStream(s.getOutputStream()));
+                                            printWriter.println("set");
+                                            printWriter.flush();
 
+                                            ObjectOutputStream on = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
+                                            on.writeObject(game);
+                                            on.flush();
+
+                                            on.close();
+                                            s.close();
+
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
+
+                                    //refreshBoard();
 
                             }
 
+                            }
 
                     });
                     enemyPane.add(button, i, j);
@@ -346,23 +318,6 @@ public class Controller {
                                         button.setStyle("-fx-background-color: green");
                                         game.changeTurn();
                                     }
-//                                else if(game.ourPlansza[finalI-1][finalJ] == Stan.STAN_WOLNY)
-//                                {
-//                                    game.ourPlansza[finalI-1][finalJ] = Stan.STAN_ZNISZCZONY;
-//                                    button.setStyle("-fx-background-color: red");
-//                                }
-//                                else if(game.ourPlansza[finalI-1][finalJ] == Stan.STAN_ZAJETY)
-//                                {
-//
-//                                    game.ourPlansza[finalI-1][finalJ] = Stan.STAN_ZNISZCZONY;
-//                                    game.ourHaubica.hit();
-//                                    button.setStyle("-fx-background-color: black");
-//                                    if(game.ourHaubica.health < 1)
-//                                    {
-//                                        endGameLose();
-//                                    }
-//                                }
-
                                 }
                                 else {
                                     if(game.ourHaubica.getPosY() == 0 && game.ourHaubica.getPosX() == 0)
@@ -388,7 +343,7 @@ public class Controller {
                                     on.writeObject(game);
                                     on.flush();
                                     s.close();
-                                }catch (IOException e){}
+                                }catch (IOException e){e.printStackTrace();}
                             }
                         }
                     });

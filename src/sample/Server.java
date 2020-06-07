@@ -6,7 +6,7 @@ import java.net.Socket;
 
 public class Server
 {
-    public static Game g;
+    public volatile static Game g;
     public static boolean taken;
     public static void main(String[] args) throws IOException
     {
@@ -29,7 +29,6 @@ public class Server
                     System.out.println(str);
 
 
-
                     if (str.equals("getTurn"))
                     {
                         PrintWriter printWriter = new PrintWriter(s.getOutputStream());
@@ -44,13 +43,13 @@ public class Server
                             printWriter.flush();
                         }
                     }
-                    if (str.equals("set"))
+                    else if (str.equals("set"))
                     {
                         ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
                         g = (Game) in.readObject();
                         System.out.println(g.turn);
                     }
-                    if(str.equals("get"))
+                    else if(str.equals("get"))
                     {
                         ObjectOutputStream on = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
                         on.writeObject(g);
@@ -58,33 +57,13 @@ public class Server
                         System.out.println(g.turn);
                     }
 
-
+                    s.close();
 
 
                 }catch(IOException | ClassNotFoundException e) {e.printStackTrace();}
 
             }
         };new Thread(send).start();
-
-//        Runnable get = ()->{
-//
-//            while (true)
-//            {
-//                try {
-//                    Socket s = serverSocket.accept();
-//                    ObjectOutputStream on = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
-//
-//
-//                    on.writeObject(g);
-//                    on.flush();
-//                    System.out.println(g.turn);
-//
-//
-//
-//                }catch(IOException e) {e.printStackTrace();}
-//
-//            }
-//        };new Thread(get).start();
 
     }
 
