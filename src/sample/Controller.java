@@ -2,7 +2,6 @@ package sample;
 
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
-import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -29,8 +28,7 @@ public class Controller {
     @FXML
     VBox planszaMain;
 
-    //@FXML
-    TextField txtFldTurn;
+    Label txtFldTurn;
 
     GridPane enemyPane;
     GridPane ourPane;
@@ -38,6 +36,7 @@ public class Controller {
     volatile Game game;
     boolean playerFirst;
     Thread yourTurnT;
+    int gameIndex;
 
 
     public Controller() throws IOException, ClassNotFoundException {
@@ -47,12 +46,20 @@ public class Controller {
 
         PrintWriter printWriter = new PrintWriter(s.getOutputStream());
 
-        printWriter.println("getTurn");
+        printWriter.println("getTurn " + 0);
         printWriter.flush();
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(s.getInputStream()));
         String str = bufferedReader.readLine();
+        System.out.println(str);
 
-        if(str.equals("1"))
+        String[] instruction;
+        instruction = str.split(" ");
+
+        int YourSeat = Integer.parseInt(instruction[0]);
+        gameIndex = Integer.parseInt(instruction[1]);
+
+
+        if(YourSeat == 1)
         {
             playerFirst = true;
             System.out.println("jestem graczem 1");
@@ -67,7 +74,7 @@ public class Controller {
         s = new Socket("127.0.0.1", 1700);
         printWriter = new PrintWriter(s.getOutputStream());
 
-        printWriter.println("get");
+        printWriter.println("get " + gameIndex);
         printWriter.flush();
 
         ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
@@ -82,26 +89,14 @@ public class Controller {
     {
         if(playerFirst)
         {
-            if (game.turn)
-            {
-                //System.out.println("tura gracza 1");
-                return true;
-            }
-            else {
-                //System.out.println("tura gracza 2");
-                return false;
-            }
+            //System.out.println("tura gracza 1");
+            //System.out.println("tura gracza 2");
+            return game.turn;
         }
         else {
-            if(!game.turn) {
-                //System.out.println("tura gracza 2");
-                return true;
-            }
-            else
-            {
-                //System.out.println("tura gracza 1");
-                return false;
-            }
+            //System.out.println("tura gracza 2");
+            //System.out.println("tura gracza 1");
+            return !game.turn;
 
         }
     }
@@ -115,8 +110,8 @@ public class Controller {
 
         Runnable yourTurn = ()->
         {
-            boolean flag = true;
-            while(flag)
+            final boolean[] flag = {true};
+            while(flag[0])
             {
 
                     try {
@@ -131,14 +126,20 @@ public class Controller {
                                 Socket s = new Socket("127.0.0.1", 1700);
 
                                 PrintWriter printWriter = new PrintWriter(s.getOutputStream());
-                                printWriter.println("get");
+                                printWriter.println("get " + gameIndex);
                                 printWriter.flush();
 
                                 ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
                                 game = (Game) in.readObject();
                                 s.close();
 
-                                flag = refreshBoard();
+                                Platform.runLater(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        flag[0] = refreshBoard();
+                                    }
+                                });
+
                             }
 
 
@@ -235,7 +236,7 @@ public class Controller {
                                             Socket s = new Socket("127.0.0.1", 1700);
 
                                             PrintWriter printWriter = new PrintWriter(new BufferedOutputStream(s.getOutputStream()));
-                                            printWriter.println("set");
+                                            printWriter.println("set " + gameIndex);
                                             printWriter.flush();
 
                                             ObjectOutputStream on = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
@@ -336,7 +337,7 @@ public class Controller {
                                     Socket s = new Socket("127.0.0.1", 1700);
 
                                     PrintWriter printWriter = new PrintWriter(s.getOutputStream());
-                                    printWriter.println("set");
+                                    printWriter.println("set " + gameIndex);
                                     printWriter.flush();
 
                                     ObjectOutputStream on = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
@@ -357,7 +358,7 @@ public class Controller {
 
         planszaMain.getChildren().add(ourPane);
 
-        txtFldTurn = new TextField("");
+        txtFldTurn = new Label("");
         txtFldTurn.setAlignment(Pos.CENTER);
         txtFldTurn.setPrefHeight(20);
         txtFldTurn.setFont(Font.font("Verdana", FontWeight.BOLD, 16));
@@ -424,7 +425,7 @@ public class Controller {
             else
             {
                 txtFldTurn.setText("Tura przeciwnika");
-                txtFldTurn.setStyle("-fx-text-fill: crimson");
+                txtFldTurn.setStyle("-fx-text-fill: red");
             }
 
             ObservableList<Node> childrens = ourPane.getChildren();
@@ -518,7 +519,7 @@ public class Controller {
             }
             else
             {
-                txtFldTurn.setStyle("-fx-text-fill: crimson");
+                txtFldTurn.setStyle("-fx-text-fill: red");
                 txtFldTurn.setText("Tura przeciwnika");
             }
 
