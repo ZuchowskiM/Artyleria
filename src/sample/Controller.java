@@ -11,7 +11,6 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -37,6 +36,7 @@ public class Controller {
     boolean playerFirst;
     Thread yourTurnT;
     int gameIndex;
+    boolean gameEnd;
 
 
     public Controller() throws IOException, ClassNotFoundException {
@@ -57,7 +57,7 @@ public class Controller {
 
         int YourSeat = Integer.parseInt(instruction[0]);
         gameIndex = Integer.parseInt(instruction[1]);
-
+        gameEnd = false;
 
         if(YourSeat == 1)
         {
@@ -87,17 +87,34 @@ public class Controller {
 
     boolean CheckYourTurn()
     {
+        if(game != null)
+        {
+            if(playerFirst)
+            {
+                //System.out.println("tura gracza 1");
+                //System.out.println("tura gracza 2");
+                return game.turn;
+            }
+            else {
+                //System.out.println("tura gracza 2");
+                //System.out.println("tura gracza 1");
+                return !game.turn;
+
+            }
+        }
+        return false;
+
+    }
+
+    boolean checkIfGunPlaced()
+    {
         if(playerFirst)
         {
-            //System.out.println("tura gracza 1");
-            //System.out.println("tura gracza 2");
-            return game.turn;
+            return game.ourHaubica.getPosX() != -1 && game.ourHaubica.getPosY() != -1;
         }
-        else {
-            //System.out.println("tura gracza 2");
-            //System.out.println("tura gracza 1");
-            return !game.turn;
-
+        else
+        {
+            return game.enemyHaubica.getPosX() != -1 && game.enemyHaubica.getPosY() != -1;
         }
     }
 
@@ -121,7 +138,7 @@ public class Controller {
                     }
                     try {
 
-                            if(!CheckYourTurn())
+                            if(!CheckYourTurn() && !gameEnd)
                             {
                                 Socket s = new Socket("127.0.0.1", 1700);
 
@@ -203,7 +220,7 @@ public class Controller {
                         @Override
                         public void handle(ActionEvent actionEvent) {
 
-                            if(CheckYourTurn())
+                            if(CheckYourTurn() && checkIfGunPlaced())
                             {
 
                                     if (playerFirst) {
@@ -310,7 +327,7 @@ public class Controller {
                             {
                                 if(playerFirst)
                                 {
-                                    if(game.enemyHaubica.getPosY() == 0 && game.enemyHaubica.getPosX() == 0)
+                                    if(game.enemyHaubica.getPosY() == -1 && game.enemyHaubica.getPosX() == -1)
                                     {
                                         game.enemyPlansza[0][0] = Stan.STAN_WOLNY;
                                         game.enemyHaubica.setPosX(finalI - 1);
@@ -321,7 +338,7 @@ public class Controller {
                                     }
                                 }
                                 else {
-                                    if(game.ourHaubica.getPosY() == 0 && game.ourHaubica.getPosX() == 0)
+                                    if(game.ourHaubica.getPosY() == -1 && game.ourHaubica.getPosX() == -1)
                                     {
                                         game.ourPlansza[0][0] = Stan.STAN_WOLNY;
                                         game.ourHaubica.setPosX(finalI -1);
@@ -412,201 +429,226 @@ public class Controller {
 
     boolean refreshBoard()
     {
-
-        if(playerFirst)
+        if(game!=null)
         {
-            System.out.println("refreshBoard() player1");
+            if(playerFirst)
+            {
+                //System.out.println("refreshBoard() player1");
 
-            if(game.turn)
-            {
-                txtFldTurn.setText("Twój ruch");
-                txtFldTurn.setStyle("-fx-text-fill: chartreuse");
-            }
-            else
-            {
-                txtFldTurn.setText("Tura przeciwnika");
-                txtFldTurn.setStyle("-fx-text-fill: red");
-            }
-
-            ObservableList<Node> childrens = ourPane.getChildren();
-            for (int i=0;i<game.size;i++)
-            {
-                for (int j=0;j<game.size;j++)
+                if(game.turn)
                 {
+                    txtFldTurn.setText("Twój ruch");
+                    txtFldTurn.setStyle("-fx-text-fill: chartreuse");
+                }
+                else
+                {
+                    txtFldTurn.setText("Tura przeciwnika");
+                    txtFldTurn.setStyle("-fx-text-fill: red");
+                }
 
-                    if(game.ourPlansza[i][j] == Stan.STAN_ZNISZCZONY) {
+                ObservableList<Node> childrens = ourPane.getChildren();
+                for (int i=0;i<game.size;i++)
+                {
+                    for (int j=0;j<game.size;j++)
+                    {
 
-                        for (Node node : childrens) {
-                            if(ourPane.getRowIndex(node) != null && ourPane.getColumnIndex(node) != null)
-                            {
-                                if(ourPane.getRowIndex(node) == j+1 && ourPane.getColumnIndex(node) == i+1)
+                        if(game.ourPlansza[i][j] == Stan.STAN_ZNISZCZONY) {
+
+                            for (Node node : childrens) {
+                                if(ourPane.getRowIndex(node) != null && ourPane.getColumnIndex(node) != null)
                                 {
-                                    node.setStyle("-fx-background-color: red");
+                                    if(ourPane.getRowIndex(node) == j+1 && ourPane.getColumnIndex(node) == i+1)
+                                    {
+                                        node.setStyle("-fx-background-color: red");
+                                    }
                                 }
+
                             }
+                        }
+
+                    }
+                }
+
+                if(game.enemyHaubica.health < 1)
+                {
+                    //endGameWin();
+                    gameEnd = true;
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            Stage dialogStage = new Stage();
+                            dialogStage.initModality(Modality.WINDOW_MODAL);
+                            dialogStage.setResizable(true);
+
+                            Button endButton = new Button("Wyjdź");
+                            endButton.setOnAction(new EventHandler<ActionEvent>() {
+                                @Override
+                                public void handle(ActionEvent actionEvent) {
+                                    Platform.exit();
+                                }
+                            });
+
+                            VBox vbox = new VBox(new Text("Brawo!!"), endButton);
+                            vbox.setAlignment(Pos.CENTER);
+                            vbox.setPadding(new Insets(15,15,15,15));
+
+                            dialogStage.setScene(new Scene(vbox));
+                            dialogStage.show();
+
+                            try {
+                                Socket s = new Socket("127.0.0.1", 1700);
+
+                                PrintWriter printWriter = new PrintWriter(s.getOutputStream());
+                                printWriter.println("endGame " + gameIndex);
+                                printWriter.flush();
+
+                            }catch (IOException e){e.printStackTrace();}
 
                         }
-                    }
-
+                    });
+                    return false;
                 }
-            }
-
-            if(game.enemyHaubica.health < 1)
-            {
-                //endGameWin();
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        Stage dialogStage = new Stage();
-                        dialogStage.initModality(Modality.WINDOW_MODAL);
-                        dialogStage.setResizable(true);
-
-                        Button endButton = new Button("Wyjdź");
-                        endButton.setOnAction(new EventHandler<ActionEvent>() {
-                            @Override
-                            public void handle(ActionEvent actionEvent) {
-                                Platform.exit();
-                            }
-                        });
-
-                        VBox vbox = new VBox(new Text("Brawo!!"), endButton);
-                        vbox.setAlignment(Pos.CENTER);
-                        vbox.setPadding(new Insets(15,15,15,15));
-
-                        dialogStage.setScene(new Scene(vbox));
-                        dialogStage.show();
-
-                    }
-                });
-                return false;
-            }
-            if(game.ourHaubica.health < 1)
-            {
-                //endGameLose();
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        Stage dialogStage = new Stage();
-                        dialogStage.initModality(Modality.WINDOW_MODAL);
-                        dialogStage.setResizable(true);
-
-                        Button endButton = new Button("Wyjdź");
-                        endButton.setOnAction(new EventHandler<ActionEvent>() {
-                            @Override
-                            public void handle(ActionEvent actionEvent) {
-                                Platform.exit();
-                            }
-                        });
-
-                        VBox vbox = new VBox(new Text("Przegrałeś :("), endButton);
-                        vbox.setAlignment(Pos.CENTER);
-                        vbox.setPadding(new Insets(15,15,15,15));
-
-                        dialogStage.setScene(new Scene(vbox));
-                        dialogStage.show();
-                    }
-                });
-                return false;
-            }
-
-        }
-        else {
-
-            if(!game.turn)
-            {
-                txtFldTurn.setStyle("-fx-text-fill: chartreuse");
-                txtFldTurn.setText("Twój ruch");
-            }
-            else
-            {
-                txtFldTurn.setStyle("-fx-text-fill: red");
-                txtFldTurn.setText("Tura przeciwnika");
-            }
-
-            System.out.println("refreshBoard() player2");
-
-            ObservableList<Node> childrens = ourPane.getChildren();
-            for (int i=0;i<game.size;i++)
-            {
-                for (int j=0;j<game.size;j++)
+                if(game.ourHaubica.health < 1)
                 {
+                    //endGameLose();
+                    gameEnd = true;
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            Stage dialogStage = new Stage();
+                            dialogStage.initModality(Modality.WINDOW_MODAL);
+                            dialogStage.setResizable(true);
 
-                    if(game.enemyPlansza[i][j] == Stan.STAN_ZNISZCZONY) {
-
-                        for (Node node : childrens) {
-                            if(ourPane.getRowIndex(node) != null && ourPane.getColumnIndex(node) != null)
-                            {
-                                if(ourPane.getRowIndex(node) == j+1 && ourPane.getColumnIndex(node) == i+1)
-                                {
-                                    node.setStyle("-fx-background-color: red");
+                            Button endButton = new Button("Wyjdź");
+                            endButton.setOnAction(new EventHandler<ActionEvent>() {
+                                @Override
+                                public void handle(ActionEvent actionEvent) {
+                                    Platform.exit();
                                 }
-                            }
+                            });
 
+                            VBox vbox = new VBox(new Text("Przegrałeś :("), endButton);
+                            vbox.setAlignment(Pos.CENTER);
+                            vbox.setPadding(new Insets(15,15,15,15));
+
+                            dialogStage.setScene(new Scene(vbox));
+                            dialogStage.show();
+
+                            try {
+                                Socket s = new Socket("127.0.0.1", 1700);
+
+                                PrintWriter printWriter = new PrintWriter(s.getOutputStream());
+                                printWriter.println("endGame " + gameIndex);
+                                printWriter.flush();
+
+                            }catch (IOException e){e.printStackTrace();}
                         }
-                    }
-
+                    });
+                    return false;
                 }
+
             }
+            else {
 
-            if(game.ourHaubica.health < 1)
-            {
-                //endGameWin();
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        Stage dialogStage = new Stage();
-                        dialogStage.initModality(Modality.WINDOW_MODAL);
-                        dialogStage.setResizable(true);
+                if(!game.turn)
+                {
+                    txtFldTurn.setStyle("-fx-text-fill: chartreuse");
+                    txtFldTurn.setText("Twój ruch");
+                }
+                else
+                {
+                    txtFldTurn.setStyle("-fx-text-fill: red");
+                    txtFldTurn.setText("Tura przeciwnika");
+                }
 
-                        Button endButton = new Button("Wyjdź");
-                        endButton.setOnAction(new EventHandler<ActionEvent>() {
-                            @Override
-                            public void handle(ActionEvent actionEvent) {
-                                Platform.exit();
+                //System.out.println("refreshBoard() player2");
+
+                ObservableList<Node> childrens = ourPane.getChildren();
+                for (int i=0;i<game.size;i++)
+                {
+                    for (int j=0;j<game.size;j++)
+                    {
+
+                        if(game.enemyPlansza[i][j] == Stan.STAN_ZNISZCZONY) {
+
+                            for (Node node : childrens) {
+                                if(ourPane.getRowIndex(node) != null && ourPane.getColumnIndex(node) != null)
+                                {
+                                    if(ourPane.getRowIndex(node) == j+1 && ourPane.getColumnIndex(node) == i+1)
+                                    {
+                                        node.setStyle("-fx-background-color: red");
+                                    }
+                                }
+
                             }
-                        });
+                        }
 
-                        VBox vbox = new VBox(new Text("Brawo!!"), endButton);
-                        vbox.setAlignment(Pos.CENTER);
-                        vbox.setPadding(new Insets(15,15,15,15));
-
-                        dialogStage.setScene(new Scene(vbox));
-                        dialogStage.show();
                     }
-                });
-                return false;
+                }
+
+                if(game.ourHaubica.health < 1)
+                {
+                    //endGameWin();
+                    gameEnd = true;
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            Stage dialogStage = new Stage();
+                            dialogStage.initModality(Modality.WINDOW_MODAL);
+                            dialogStage.setResizable(true);
+
+                            Button endButton = new Button("Wyjdź");
+                            endButton.setOnAction(new EventHandler<ActionEvent>() {
+                                @Override
+                                public void handle(ActionEvent actionEvent) {
+                                    Platform.exit();
+                                }
+                            });
+
+                            VBox vbox = new VBox(new Text("Brawo!!"), endButton);
+                            vbox.setAlignment(Pos.CENTER);
+                            vbox.setPadding(new Insets(15,15,15,15));
+
+                            dialogStage.setScene(new Scene(vbox));
+                            dialogStage.show();
+                        }
+                    });
+                    return false;
+                }
+                if(game.enemyHaubica.health < 1)
+                {
+                    //endGameLose();
+                    gameEnd = true;
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            Stage dialogStage = new Stage();
+                            dialogStage.initModality(Modality.WINDOW_MODAL);
+                            dialogStage.setResizable(true);
+
+                            Button endButton = new Button("Wyjdź");
+                            endButton.setOnAction(new EventHandler<ActionEvent>() {
+                                @Override
+                                public void handle(ActionEvent actionEvent) {
+                                    Platform.exit();
+                                }
+                            });
+
+                            VBox vbox = new VBox(new Text("Przegrałeś :("), endButton);
+                            vbox.setAlignment(Pos.CENTER);
+                            vbox.setPadding(new Insets(15,15,15,15));
+
+                            dialogStage.setScene(new Scene(vbox));
+                            dialogStage.show();
+                        }
+                    });
+                    return false;
+                }
+
             }
-            if(game.enemyHaubica.health < 1)
-            {
-                //endGameLose();
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        Stage dialogStage = new Stage();
-                        dialogStage.initModality(Modality.WINDOW_MODAL);
-                        dialogStage.setResizable(true);
-
-                        Button endButton = new Button("Wyjdź");
-                        endButton.setOnAction(new EventHandler<ActionEvent>() {
-                            @Override
-                            public void handle(ActionEvent actionEvent) {
-                                Platform.exit();
-                            }
-                        });
-
-                        VBox vbox = new VBox(new Text("Przegrałeś :("), endButton);
-                        vbox.setAlignment(Pos.CENTER);
-                        vbox.setPadding(new Insets(15,15,15,15));
-
-                        dialogStage.setScene(new Scene(vbox));
-                        dialogStage.show();
-                    }
-                });
-                return false;
-            }
-
+            return true;
         }
-        return true;
+        return false;
     }
 
 
