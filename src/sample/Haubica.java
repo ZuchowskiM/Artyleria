@@ -29,11 +29,11 @@ public class Haubica implements Serializable
         this.posY = posY;
     }
 
-    public void move(int posX, int posY)
-    {
-        this.posX = posX;
-        this.posY= posY;
-    }
+//    public void move(int posX, int posY)
+//    {
+//        this.posX = posX;
+//        this.posY= posY;
+//    }
 
     public void hit()
     {

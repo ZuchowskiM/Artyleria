@@ -7,8 +7,8 @@ public class Game implements Serializable {
     public Stan[][] enemyPlansza;
     public Stan[][] ourPlansza;
     public int size;
-    public Haubica ourHaubica;
-    public Haubica enemyHaubica;
+    public volatile Haubica ourHaubica;
+    public volatile Haubica enemyHaubica;
     boolean turn;
 
     public Game(int sizePlansza, int ourPosX,int ourPosY,int enemyPosX,int enemyPosY)
@@ -48,24 +48,24 @@ public class Game implements Serializable {
         turn = !turn;
     }
 
-    public void hit(int posX,int posY)
-    {
-        if (ourHaubica.getPosX() == posX && ourHaubica.getPosY() == posY) {
-            ourPlansza[posX][posY] = Stan.STAN_ZNISZCZONY;
-            ourHaubica.hit();
-        } else
-            ourPlansza[posX][posY] = Stan.STAN_ZNISZCZONY;
-    }
-
-    public void fire(int posX,int posY)
-    {
-        if (enemyHaubica.getPosX() == posX && enemyHaubica.getPosY() == posY) {
-            enemyPlansza[posX][posY] = Stan.STAN_ZNISZCZONY;
-            enemyHaubica.hit();
-
-        } else
-            enemyPlansza[posX][posY] = Stan.STAN_ZNISZCZONY;
-    }
+//    public void hit(int posX,int posY)
+//    {
+//        if (ourHaubica.getPosX() == posX && ourHaubica.getPosY() == posY) {
+//            ourPlansza[posX][posY] = Stan.STAN_ZNISZCZONY;
+//            ourHaubica.hit();
+//        } else
+//            ourPlansza[posX][posY] = Stan.STAN_ZNISZCZONY;
+//    }
+//
+//    public void fire(int posX,int posY)
+//    {
+//        if (enemyHaubica.getPosX() == posX && enemyHaubica.getPosY() == posY) {
+//            enemyPlansza[posX][posY] = Stan.STAN_ZNISZCZONY;
+//            enemyHaubica.hit();
+//
+//        } else
+//            enemyPlansza[posX][posY] = Stan.STAN_ZNISZCZONY;
+//    }
 
 
 
