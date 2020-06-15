@@ -75,7 +75,6 @@ public class Server
                         //klient wysyla zaaktualizowana gre na server
                         ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
                         games.replace(gameKey, (Game) in.readObject());
-                        //games.get(gameKey).changeTurn();
                         //System.out.println(games.get(gameKey).turn);
                     }
                     else if(instruction[0].equals("get"))
@@ -95,6 +94,7 @@ public class Server
                         if(ending.get(gameKey) > 1)
                         {
                             games.remove(gameKey);
+                            ending.remove(gameKey);
                             System.out.println("Gra numer: " + gameKey + " zostala zakonczona");
                             System.out.println("Liczba gier pozostalych: " + games.size());
                         }

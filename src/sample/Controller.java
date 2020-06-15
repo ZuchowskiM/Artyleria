@@ -83,7 +83,7 @@ public class Controller {
         }
         s.close();
 
-        //prosimy server o wyslania egzemplarza gry
+        //prosimy serwer o wyslanie egzemplarza gry
         s = new Socket("127.0.0.1", 1700);
         printWriter = new PrintWriter(s.getOutputStream());
 
@@ -106,15 +106,10 @@ public class Controller {
         {
             if(playerFirst)
             {
-                //System.out.println("tura gracza 1");
-                //System.out.println("tura gracza 2");
                 return game.turn;
             }
             else {
-                //System.out.println("tura gracza 2");
-                //System.out.println("tura gracza 1");
                 return !game.turn;
-
             }
         }
         return false;
@@ -270,8 +265,7 @@ public class Controller {
 
                                     }
                                     //konczymy swoj ruch
-
-                                        game.changeTurn();
+                                    game.changeTurn();
 
                                         //wysylamy zaaktulizowana gre na server
                                         try {
