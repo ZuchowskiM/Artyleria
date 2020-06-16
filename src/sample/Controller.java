@@ -46,12 +46,14 @@ public class Controller {
     //informuje czy gra sie zakonczyla, potrzebne do przerwania odswiezania planszy
     boolean gameEnd;
 
+    Socket s;
+
 
     public Controller() throws IOException, ClassNotFoundException {
 
         //laczymy sie z serwerem
         System.out.println("Controller() start");
-        Socket s = new Socket("127.0.0.1", 1700);
+        s = new Socket("127.0.0.1", 1700);
 
         PrintWriter printWriter = new PrintWriter(s.getOutputStream());
 
@@ -81,12 +83,9 @@ public class Controller {
             playerFirst = false;
             System.out.println("jestem graczem 2");
         }
-        s.close();
 
         //prosimy serwer o wyslanie egzemplarza gry
-        s = new Socket("127.0.0.1", 1700);
         printWriter = new PrintWriter(s.getOutputStream());
-
         printWriter.println("get " + gameIndex);
         printWriter.flush();
 
@@ -94,12 +93,10 @@ public class Controller {
 
         //odczytujemy go i zapisujemy w zmiennej lokalnej
         game = (Game) in.readObject();
-        s.close();
-
 
     }
 
-    //funcja pomocnicza, sprawdza czy mozesz wykonan ruch w zaleznosci ktorym graczem jestes
+    //funcja pomocnicza, sprawdza czy mozesz wykonac ruch w zaleznosci ktorym graczem jestes
     boolean CheckYourTurn()
     {
         if(game != null)
@@ -153,8 +150,6 @@ public class Controller {
 
                 try {
 
-                    Socket s = new Socket("127.0.0.1", 1700);
-
                     PrintWriter printWriter = new PrintWriter(s.getOutputStream());
 
                     //pytamy za pomoca instrukcji i klucza
@@ -166,8 +161,6 @@ public class Controller {
 
                     if (gameTemp != null)
                         game = gameTemp;
-
-                    s.close();
 
                     //kazda funkcja aktualizajaca interfejs musi zostac wywolana w
                     // EDT więc robimy to za pomocą tej instukcji
@@ -269,7 +262,6 @@ public class Controller {
 
                                         //wysylamy zaaktulizowana gre na server
                                         try {
-                                            Socket s = new Socket("127.0.0.1", 1700);
 
                                             PrintWriter printWriter = new PrintWriter(new BufferedOutputStream(s.getOutputStream()));
                                             // korzystamy z instrukcji set i klucza oddzielonych spacja
@@ -279,9 +271,6 @@ public class Controller {
                                             ObjectOutputStream on = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
                                             on.writeObject(game);
                                             on.flush();
-
-                                            on.close();
-                                            s.close();
 
                                         } catch (IOException e) {
                                             e.printStackTrace();
@@ -368,7 +357,6 @@ public class Controller {
                             game.changeTurn();
 
                             try {
-                                Socket s = new Socket("127.0.0.1", 1700);
 
                                 PrintWriter printWriter = new PrintWriter(s.getOutputStream());
                                 printWriter.println("set " + gameIndex);
@@ -377,7 +365,7 @@ public class Controller {
                                 ObjectOutputStream on = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
                                 on.writeObject(game);
                                 on.flush();
-                                s.close();
+
                             }catch (IOException e){e.printStackTrace();}
                         }
                     });
@@ -431,12 +419,9 @@ public class Controller {
                             dialogStage.show();
 
                             try {
-                                Socket s = new Socket("127.0.0.1", 1700);
-
                                 PrintWriter printWriter = new PrintWriter(s.getOutputStream());
                                 printWriter.println("endGame " + gameIndex);
                                 printWriter.flush();
-
                             }catch (IOException e){e.printStackTrace();}
 
                         });
@@ -470,12 +455,9 @@ public class Controller {
                             dialogStage.show();
 
                             try {
-                                Socket s = new Socket("127.0.0.1", 1700);
-
                                 PrintWriter printWriter = new PrintWriter(s.getOutputStream());
                                 printWriter.println("endGame " + gameIndex);
                                 printWriter.flush();
-
                             }catch (IOException e){e.printStackTrace();}
 
                         });
@@ -549,12 +531,9 @@ public class Controller {
                             dialogStage.show();
 
                             try {
-                                Socket s = new Socket("127.0.0.1", 1700);
-
                                 PrintWriter printWriter = new PrintWriter(s.getOutputStream());
                                 printWriter.println("endGame " + gameIndex);
                                 printWriter.flush();
-
                             }catch (IOException e){e.printStackTrace();}
                         });
 
@@ -584,12 +563,9 @@ public class Controller {
                             dialogStage.show();
 
                             try {
-                                Socket s = new Socket("127.0.0.1", 1700);
-
                                 PrintWriter printWriter = new PrintWriter(s.getOutputStream());
                                 printWriter.println("endGame " + gameIndex);
                                 printWriter.flush();
-
                             }catch (IOException e){e.printStackTrace();}
                         });
 
