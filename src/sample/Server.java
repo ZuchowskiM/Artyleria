@@ -44,10 +44,11 @@ public class Server
 
         public void run()
         {
+            boolean flag = true;
             String str;
             try {
 
-            while (true)
+            while (flag)
             {
 
                     //System.out.println("enter while");
@@ -130,8 +131,10 @@ public class Server
                                 ending.remove(gameKey);
                                 System.out.println("Gra numer: " + gameKey + " zostala zakonczona");
                                 System.out.println("Liczba gier pozostalych: " + games.size());
+
                             }
                         }
+                        flag = false;
                     }
 
 

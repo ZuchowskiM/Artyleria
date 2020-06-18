@@ -10,6 +10,7 @@ public class Game implements Serializable {
     public volatile Haubica ourHaubica;
     public volatile Haubica enemyHaubica;
     boolean turn;
+    boolean ourPlayerSurrender, enemyPlayerSurrender;
 
     public Game(int sizePlansza, int ourPosX,int ourPosY,int enemyPosX,int enemyPosY)
     {
@@ -41,6 +42,8 @@ public class Game implements Serializable {
             }
         }
         turn = false;
+        ourPlayerSurrender = false;
+        enemyPlayerSurrender = false;
     }
 
     public void changeTurn()

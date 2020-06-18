@@ -11,12 +11,16 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception{
-        Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("sample.fxml"));
+        Parent root = loader.load();
         primaryStage.setTitle("Artillery Game");
         Scene scene = new Scene(root,550,1000);
         scene.getStylesheets().add("dark-theme.css");
         primaryStage.setScene(scene);
         primaryStage.getIcons().add(new Image("cannon-icon.png"));
+
+        Controller controller = loader.getController();
+        controller.setMainStage(primaryStage);
 
         primaryStage.show();
     }

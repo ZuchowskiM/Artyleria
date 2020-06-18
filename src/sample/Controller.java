@@ -11,6 +11,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.SplitPane;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -26,6 +27,9 @@ public class Controller {
 
     @FXML
     VBox planszaMain;
+
+    @FXML
+    SplitPane mainSlitPane;
 
     Label txtFldTurn;
 
@@ -47,6 +51,8 @@ public class Controller {
     boolean gameEnd;
 
     Socket s;
+
+    Stage mainStage;
 
 
     public Controller() throws IOException, ClassNotFoundException {
@@ -94,6 +100,8 @@ public class Controller {
         //odczytujemy go i zapisujemy w zmiennej lokalnej
         game = (Game) in.readObject();
 
+
+
     }
 
     //funcja pomocnicza, sprawdza czy mozesz wykonac ruch w zaleznosci ktorym graczem jestes
@@ -126,6 +134,42 @@ public class Controller {
         }
     }
 
+    void setMainStage(Stage stage)
+    {
+        this.mainStage = stage;
+
+        mainStage.setOnHiding(windowEvent -> {
+
+            if(!gameEnd)
+            {
+                gameEnd = true;
+
+                if(playerFirst)
+                    game.ourPlayerSurrender = true;
+                else
+                    game.enemyPlayerSurrender = true;
+
+                try {
+                    PrintWriter printWriter = new PrintWriter(new BufferedOutputStream(s.getOutputStream()));
+                    // korzystamy z instrukcji set i klucza oddzielonych spacja
+                    printWriter.println("set " + gameIndex);
+                    printWriter.flush();
+
+                    ObjectOutputStream on = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
+                    on.writeObject(game);
+                    on.flush();
+
+
+                    printWriter = new PrintWriter(s.getOutputStream());
+                    printWriter.println("endGame " + gameIndex);
+                    printWriter.flush();
+                }catch (IOException e){e.printStackTrace();}
+
+            }
+
+        });
+    }
+
     //funkcja inicjalizacyjna javyFX wykonuje sie po controller()
     @FXML
     public void initialize()
@@ -149,26 +193,28 @@ public class Controller {
                 }
 
                 try {
+                    if(!gameEnd)
+                    {
+                        PrintWriter printWriter = new PrintWriter(s.getOutputStream());
 
-                    PrintWriter printWriter = new PrintWriter(s.getOutputStream());
+                        //pytamy za pomoca instrukcji i klucza
+                        printWriter.println("get " + gameIndex);
+                        printWriter.flush();
 
-                    //pytamy za pomoca instrukcji i klucza
-                    printWriter.println("get " + gameIndex);
-                    printWriter.flush();
+                        ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
+                        Game gameTemp = (Game) in.readObject();
 
-                    ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
-                    Game gameTemp = (Game) in.readObject();
+                        if (gameTemp != null)
+                            game = gameTemp;
 
-                    if (gameTemp != null)
-                        game = gameTemp;
-
-                    //kazda funkcja aktualizajaca interfejs musi zostac wywolana w
-                    // EDT więc robimy to za pomocą tej instukcji
-                    Platform.runLater(() -> {
-                        //refreshBoard zaaktulizuje gre ostatni raz i podniesie flage do zakonczenia watku
-                        // jesli gra nie jest zakonczona flaga nie zostanie podniesiona
-                        flag[0] = refreshBoard();
-                    });
+                        //kazda funkcja aktualizajaca interfejs musi zostac wywolana w
+                        // EDT więc robimy to za pomocą tej instukcji
+                        Platform.runLater(() -> {
+                            //refreshBoard zaaktulizuje gre ostatni raz i podniesie flage do zakonczenia watku
+                            // jesli gra nie jest zakonczona flaga nie zostanie podniesiona
+                            flag[0] = refreshBoard();
+                        });
+                    }
 
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
@@ -177,12 +223,14 @@ public class Controller {
 
             }
         };yourTurnT = new Thread(yourTurn);
+        yourTurnT.setDaemon(true);
         yourTurnT.start();
     }
 
     //funkcja inicjalizuje interfejs uzytkownika
     private void initializePlansze()
     {
+
         planszaMain.setSpacing(30);
 
         enemyPane = new GridPane();
@@ -394,37 +442,23 @@ public class Controller {
             if(playerFirst)
             {
                 //System.out.println("refreshBoard() player1");
+                if(game.enemyPlayerSurrender)
+                {
+                    if(!gameEnd)
+                    {
+                        System.out.println("Connection lost");
+                        endGame("Przeciwnik się poddał");
+                    }
 
+                    return false;
+                }
                 if(game.enemyHaubica.health < 1)
                 {
                     //konczy gre jako wygrana strona
                     if(!gameEnd)
                     {
                         System.out.println("koniec gry wygrana");
-                        gameEnd = true;
-                        Platform.runLater(() -> {
-
-                            Stage dialogStage = new Stage();
-                            dialogStage.initModality(Modality.WINDOW_MODAL);
-                            dialogStage.setResizable(true);
-
-                            Button endButton = new Button("Wyjdź");
-                            endButton.setOnAction(actionEvent -> Platform.exit());
-
-                            VBox vbox = new VBox(new Text("Brawo!!"), endButton);
-                            vbox.setAlignment(Pos.CENTER);
-                            vbox.setPadding(new Insets(15,15,15,15));
-
-                            dialogStage.setScene(new Scene(vbox));
-                            dialogStage.show();
-
-                            try {
-                                PrintWriter printWriter = new PrintWriter(s.getOutputStream());
-                                printWriter.println("endGame " + gameIndex);
-                                printWriter.flush();
-                            }catch (IOException e){e.printStackTrace();}
-
-                        });
+                        endGame("Brawo!!!");
                     }
 
                     return false;
@@ -436,31 +470,8 @@ public class Controller {
 
                     if(!gameEnd)
                     {
-                        gameEnd = true;
                         System.out.println("koniec gry przegrana");
-                        Platform.runLater(() -> {
-
-                            Stage dialogStage = new Stage();
-                            dialogStage.initModality(Modality.WINDOW_MODAL);
-                            dialogStage.setResizable(true);
-
-                            Button endButton = new Button("Wyjdź");
-                            endButton.setOnAction(actionEvent -> Platform.exit());
-
-                            VBox vbox = new VBox(new Text("Przegrałeś :("), endButton);
-                            vbox.setAlignment(Pos.CENTER);
-                            vbox.setPadding(new Insets(15,15,15,15));
-
-                            dialogStage.setScene(new Scene(vbox));
-                            dialogStage.show();
-
-                            try {
-                                PrintWriter printWriter = new PrintWriter(s.getOutputStream());
-                                printWriter.println("endGame " + gameIndex);
-                                printWriter.flush();
-                            }catch (IOException e){e.printStackTrace();}
-
-                        });
+                        endGame("Przegrałeś :(");
 
                     }
                     return false;
@@ -501,42 +512,27 @@ public class Controller {
                     }
                 }
 
-
-
-
             }
             else {
 
-                if(game.ourHaubica.health < 1)
+                if(game.ourPlayerSurrender)
                 {
+
                     if(!gameEnd)
                     {
-                        gameEnd = true;
+                        System.out.println("Player Surrender");
+                        endGame("Przeciwnik się poddał");
+                    }
+
+                    return false;
+                }
+                if(game.ourHaubica.health < 1)
+                {
+
+                    if(!gameEnd)
+                    {
                         System.out.println("koniec gry wygrana");
-                        Platform.runLater(() -> {
-
-                            Stage dialogStage = new Stage();
-                            dialogStage.initModality(Modality.WINDOW_MODAL);
-                            dialogStage.setResizable(true);
-                            dialogStage.setAlwaysOnTop(true);
-
-                            Button endButton = new Button("Wyjdź");
-                            endButton.setOnAction(actionEvent -> Platform.exit());
-
-                            VBox vbox = new VBox(new Text("Brawo!!"), endButton);
-                            vbox.setAlignment(Pos.CENTER);
-                            vbox.setPadding(new Insets(15,15,15,15));
-
-                            dialogStage.setScene(new Scene(vbox));
-                            dialogStage.show();
-
-                            try {
-                                PrintWriter printWriter = new PrintWriter(s.getOutputStream());
-                                printWriter.println("endGame " + gameIndex);
-                                printWriter.flush();
-                            }catch (IOException e){e.printStackTrace();}
-                        });
-
+                        endGame("Brawo!!");
                     }
                     return false;
                 }
@@ -544,31 +540,8 @@ public class Controller {
                 {
                     if(!gameEnd)
                     {
-                        gameEnd = true;
                         System.out.println("koniec gry przegrana");
-                        Platform.runLater(() -> {
-
-                            Stage dialogStage = new Stage();
-                            dialogStage.initModality(Modality.WINDOW_MODAL);
-                            dialogStage.setResizable(true);
-
-                            Button endButton = new Button("Wyjdź");
-                            endButton.setOnAction(actionEvent -> Platform.exit());
-
-                            VBox vbox = new VBox(new Text("Przegrałeś :("), endButton);
-                            vbox.setAlignment(Pos.CENTER);
-                            vbox.setPadding(new Insets(15,15,15,15));
-
-                            dialogStage.setScene(new Scene(vbox));
-                            dialogStage.show();
-
-                            try {
-                                PrintWriter printWriter = new PrintWriter(s.getOutputStream());
-                                printWriter.println("endGame " + gameIndex);
-                                printWriter.flush();
-                            }catch (IOException e){e.printStackTrace();}
-                        });
-
+                        endGame("Przegrałeś");
                     }
                     return false;
 
@@ -612,6 +585,33 @@ public class Controller {
 
             }
             return true;
+    }
+
+    private void endGame(String messege)
+    {
+        gameEnd = true;
+        Platform.runLater(() -> {
+
+            Stage dialogStage = new Stage();
+            dialogStage.initModality(Modality.WINDOW_MODAL);
+            dialogStage.setResizable(true);
+
+            Button endButton = new Button("Wyjdź");
+            endButton.setOnAction(actionEvent -> Platform.exit());
+
+            VBox vbox = new VBox(new Text(messege), endButton);
+            vbox.setAlignment(Pos.CENTER);
+            vbox.setPadding(new Insets(15,15,15,15));
+
+            dialogStage.setScene(new Scene(vbox));
+            dialogStage.show();
+
+            try {
+                PrintWriter printWriter = new PrintWriter(s.getOutputStream());
+                printWriter.println("endGame " + gameIndex);
+                printWriter.flush();
+            }catch (IOException e){e.printStackTrace();}
+        });
     }
 
 
